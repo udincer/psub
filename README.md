@@ -1,6 +1,8 @@
 # psub
 Submit array jobs without all the suffering
 
+Stands for petko-submit, OG ernstlab member who came up with the idea.
+
 ## Installation:
 
 Must be installed under ~/utils like this:

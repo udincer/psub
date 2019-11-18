@@ -23,5 +23,5 @@ qsub <<CMD
 #$ -m bae
 #$ -t 1-${N_TASKS}:${NUM_IN_BATCH}
 ~/utils/psub/run_task.sh ${TASKS_FILE} ${NUM_IN_BATCH}
-sleep 181
+sleep $((181-SECONDS)) 2> /dev/null
 CMD

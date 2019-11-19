@@ -3,6 +3,10 @@ Submit array jobs without all the suffering
 
 Stands for petko-submit, OG ernstlab member who came up with the idea.
 
+## New API (alpha):
+
+There's a new (unstable) API that allows submitting jobs directly in Python. 
+
 ## Installation:
 
 Must be installed under ~/utils like this:
@@ -34,8 +38,3 @@ Run psub like this, will batch 3 commands to one SGE job (for short jobs):
 ```
 psub the_jobs.py 3
 ```
-
-## Improvements
-
-- [] Provide l through argument
-- [] Saner naming scheme for logs

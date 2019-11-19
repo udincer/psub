@@ -1,6 +1,9 @@
+"""Submit array jobs to a SGE cluster without all the suffering."""
+
 import os
 import subprocess
 from datetime import datetime
+
 
 class Psub:
 
@@ -23,7 +26,7 @@ qsub <<CMD
 #$ -o {logdir}/job.\$TASK_ID.${{HOSTNAME}}.log
 #$ -m bae
 #$ -t 1-${{N_TASKS}}:${{NUM_IN_BATCH}}
-~/utils/psub/run_task.sh ${{TASKS_FILE}} ${{NUM_IN_BATCH}}
+{tmpdir}/run_task.sh ${{TASKS_FILE}} ${{NUM_IN_BATCH}}
 sleep $((11-SECONDS)) 2> /dev/null
 CMD
 """
@@ -105,18 +108,23 @@ done"""
             for cmd in self.command_l:
                 print(cmd, file=f)
 
-        psub_main_params = {"l_str": self.l_str, "logdir": self.logdir}
+        psub_main_params = {
+            "l_str": self.l_str,
+            "logdir": self.logdir,
+            "tmpdir": self.tmpdir,
+        }
 
         with open(f"{self.tmpdir}/psub_main.sh", "w") as f:
-            print(PSUB_MAIN.format(**psub_main_params), file=f)
+            print(Psub.PSUB_MAIN.format(**psub_main_params), file=f)
 
         with open(f"{self.tmpdir}/run_task.sh", "w") as f:
-            print(RUN_TASK, file=f)
+            print(Psub.RUN_TASK, file=f)
 
         subprocess_cmd = f". {self.tmpdir}/psub_main.sh {self.cmd_fn}"
 
         if dryrun:
-            print("Set dryrun=False to run the following commands:")
+            print(f"Resources to request: {self.l_str}")
+            print("Commands to run:")
             for cmd in self.command_l:
                 print(cmd)
         else:

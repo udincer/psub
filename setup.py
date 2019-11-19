@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="psub", 
-    version="0.0.1",
+    version="0.0.2_alpha",
     author="Tev Dincer",
     author_email="umutdincer@gmail.com",
     description="Submit array jobs to a SGE cluster without all the suffering",
@@ -17,5 +17,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 )

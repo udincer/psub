@@ -71,6 +71,28 @@ done"""
 
         self.set_resources()
 
+    def __repr__(self):
+        repr_str = []
+
+        repr_str.append(f"Psub: {self.name}")
+        repr_str.append(f"Resources to request: {self.l_str}")
+
+        num_commands = len(self.command_l)
+
+        repr_str.append(f"{num_commands} commands will be submitted:")
+
+        if len(self.command_l) > 10:
+            command_l_disp = self.command_l[:5]
+            command_l_disp += ["..."]
+            command_l_disp += self.command_l[-5:]
+        else:
+            command_l_disp = self.command_l
+
+        for cmd in command_l_disp:
+            repr_str.append(cmd)
+
+        return "\n".join(repr_str)
+
     def set_resources(self, l_arch=None, l_mem=None, l_time=None, l_highp=None):
 
         if l_arch is not None:
@@ -114,21 +136,27 @@ done"""
             "tmpdir": self.tmpdir,
         }
 
-        with open(f"{self.tmpdir}/psub_main.sh", "w") as f:
+        psub_main_fn = f"{self.tmpdir}/psub_main.sh"
+        with open(psub_main_fn, "w") as f:
             print(Psub.PSUB_MAIN.format(**psub_main_params), file=f)
 
-        with open(f"{self.tmpdir}/run_task.sh", "w") as f:
+        run_task_fn = f"{self.tmpdir}/run_task.sh"
+        with open(run_task_fn, "w") as f:
             print(Psub.RUN_TASK, file=f)
+
+        # make the scripts executable
+        os.chmod(psub_main_fn, 0o755)
+        os.chmod(run_task_fn, 0o755)
 
         subprocess_cmd = f". {self.tmpdir}/psub_main.sh {self.cmd_fn}"
 
         if dryrun:
-            print(f"Resources to request: {self.l_str}")
-            print("Commands to run:")
-            for cmd in self.command_l:
-                print(cmd)
+            print(str(self))
         else:
             comp_process = subprocess.run(
-                subprocess_cmd, shell=True, capture_output=True, text=True
+                subprocess_cmd,
+                shell=True,
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
             )
             print(comp_process.stdout)

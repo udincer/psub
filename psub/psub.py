@@ -1,7 +1,12 @@
+#!/usr/bin/env python3
+
 """Submit array jobs to a SGE cluster without all the suffering."""
 
 import os
 import subprocess
+import argparse
+import re
+import itertools
 from datetime import datetime
 
 
@@ -160,3 +165,85 @@ done"""
                 stdout=subprocess.PIPE,
             )
             print(comp_process.stdout)
+
+
+def parse_command(command):
+
+    command_l = command.split(":::")
+
+    base_command = command_l[0]
+
+    groups = []
+    for ss in command_l[1:]:
+        if ss[0] == ":":
+            fn = ss[1:].strip()
+            groups.append((fn, True))
+        else:
+            args = ss.strip().split()
+            groups.append((args, False))
+
+    groups_l = []
+    for args_, is_fn in groups:
+        args = []
+        if is_fn:
+            with open(args_) as f:
+                for line in f:
+                    args.append(line.strip())
+        else:
+            args = args_
+
+        groups_l.append(args)
+
+    num_fields_in_command = len(re.findall("\{\}", base_command))
+
+    args = [current for current in itertools.product(*groups_l)]
+    num_args = len(args[0])
+
+    if num_fields_in_command > num_args:
+        raise ValueError("Too many replacement strings {}.")
+
+    base_command += "{} " * (num_args - num_fields_in_command)
+    base_command = base_command.strip()
+
+    return [base_command.format(*arg_) for arg_ in args]
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--dry-run", action="store_true")
+
+    parser.add_argument("--jobname", "--name")
+    parser.add_argument("--tmpdir", "--tmp")
+
+    parser.add_argument("--l_arch", "--arch")
+    parser.add_argument("--l_mem", "--mem")
+    parser.add_argument("--l_time", "--time")
+    parser.add_argument("--l_highp", action="store_true", default=True)
+
+    parser.add_argument("command", nargs="+")
+
+    args = parser.parse_args()
+
+    command = " ".join(args.command)
+
+    p = Psub(name=args.jobname, tmpdir=args.tmpdir)
+
+    if args.l_arch is not None:
+        p.set_resources(l_arch=args.l_arch)
+
+    if args.l_mem is not None:
+        p.set_resources(l_mem=args.l_mem)
+
+    if args.l_time is not None:
+        p.set_resources(l_time=args.l_time)
+
+    if args.l_highp is not None:
+        p.set_resources(l_highp=args.l_highp)
+
+    commands = parse_command(command)
+
+    p.add(commands)
+
+    p.submit(dryrun=args.dry_run)

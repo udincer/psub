@@ -5,13 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="psub", 
-    version="0.0.3_alpha",
+    version="0.0.4_alpha",
     author="Tev Dincer",
     author_email="umutdincer@gmail.com",
     description="Submit array jobs to a SGE cluster without all the suffering",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/udincer/psub",
+    scripts=['psub/psub', 'psub/psub.py'],
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -328,4 +328,4 @@ Inspired by GNU Parallel's interface (which does it better).
 
     p.add(commands)
 
-    p.submit(dryrun=args.dry_run)
+    p.submit(dryrun=args.dry_run, skip_confirm=args.yes)

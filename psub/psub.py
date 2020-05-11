@@ -65,6 +65,8 @@ done"""
         self.logdir = f"{self.tmpdir}/logs"
         self.cmd_fn = f"{self.tmpdir}/{self.name}.sh"
 
+        self.jobs_per_batch = 1
+
         # default resources
         self.resource_dict = {
             "l_arch": "intel*",
@@ -83,7 +85,12 @@ done"""
 
         num_commands = len(self.command_l)
 
-        repr_str.append(f"{num_commands} commands will be submitted:")
+        if self.jobs_per_batch == 1:
+            repr_str.append(f"{num_commands} commands will be submitted:")
+        else:
+            repr_str.append(
+                f"{num_commands} commands will be submitted, "
+                f"{self.jobs_per_batch} jobs per batch:")
 
         if len(self.command_l) > 10:
             command_l_disp = self.command_l[:5]
@@ -152,7 +159,7 @@ done"""
         os.chmod(psub_main_fn, 0o755)
         os.chmod(run_task_fn, 0o755)
 
-        subprocess_cmd = f". {self.tmpdir}/psub_main.sh {self.cmd_fn}"
+        subprocess_cmd = f". {self.tmpdir}/psub_main.sh {self.cmd_fn} {self.jobs_per_batch}"
 
         print(str(self))
 
@@ -250,6 +257,10 @@ Inspired by GNU Parallel's interface (which does it better).
         "-n", "--jobname", help="Name of job that will appear in the queue"
     )
 
+    parser.add_argument(
+        "-b", "--jobs-per-batch", help="Number of jobs per batch"
+    )
+
     # alternative to :::: syntax
     parser.add_argument(
         "-a",
@@ -320,6 +331,9 @@ Inspired by GNU Parallel's interface (which does it better).
 
     if args.l_highp is not None:
         p.set_resources(l_highp=args.l_highp)
+
+    if args.jobs_per_batch is not None:
+        p.jobs_per_batch = args.jobs_per_batch
 
     if args.file:
         command = f":::: {command}"

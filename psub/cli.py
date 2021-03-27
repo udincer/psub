@@ -6,7 +6,7 @@ from glob import glob
 from psub import Psub
 
 
-class bcolors:
+class AnsiColors:
     """https://stackoverflow.com/questions/287871/"""
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -44,16 +44,16 @@ def _job_select_terminal_menu(psub_history_recent_first):
     def psub_preview(i) -> str:
         p = psub_history_recent_first[int(i)]
         ansi_color_code_d = {
-            'Finished': bcolors.OKGREEN,
-            'Errors': bcolors.FAIL,
-            'Not yet started': bcolors.OKBLUE,
-            'Running': bcolors.OKCYAN,
+            'Finished': AnsiColors.OKGREEN,
+            'Errors': AnsiColors.FAIL,
+            'Not yet started': AnsiColors.OKBLUE,
+            'Running': AnsiColors.OKCYAN,
         }
 
         color_code = \
-        [col for k, col in ansi_color_code_d.items() if p.status.startswith(k)][0]
+            [col for k, col in ansi_color_code_d.items() if p.status.startswith(k)][0]
 
-        status_ = f"{color_code}{p.status}{bcolors.ENDC}"
+        status_ = f"{color_code}{p.status}{AnsiColors.ENDC}"
         s_ = (f"{status_} \n"
               f"{str(p)}")
         return s_
@@ -82,6 +82,7 @@ def _log_select_terminal_menu(pp: Psub):
                                       title=f"Job logs for {pp.name}:",
                                       preview_command=log_preview,
                                       preview_size=0.75,
+                                      status_bar="q -> go back",
                                       )
 
     return terminal_menu_logs

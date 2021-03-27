@@ -81,7 +81,7 @@ class Psub:
         sample_command = self.commands[0]
         single_line_str = f"Psub[{len(self.commands)}]: {self.name} | {sample_command}"
         if len(single_line_str) > max_line_len:
-            return single_line_str[:max_line_len-3] + '...'
+            return single_line_str[:max_line_len - 3] + '...'
         else:
             return single_line_str
 
@@ -211,8 +211,8 @@ class Psub:
     def status(self) -> str:
         exit_vals = self.exit_codes.values()
         c = Counter(exit_vals)
-        success_rate = c['Success']/len(exit_vals)
-        error_rate = c['Terminated with nonzero status']/len(exit_vals)
+        success_rate = c['Success'] / len(exit_vals)
+        error_rate = c['Terminated with nonzero status'] / len(exit_vals)
         if all(v == 'Success' for v in exit_vals):
             return 'Finished'
         elif 'Terminated with nonzero status' in exit_vals:
@@ -221,7 +221,6 @@ class Psub:
             return "Not yet started"
         else:
             return f"Running [{success_rate:.0%}]"
-
 
     def rerun_failed(self):
         pass

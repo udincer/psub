@@ -118,7 +118,7 @@ def main():
     ARGPARSE_HELP_STRING = """
 psub 0.1.0a: Submit and monitor jobs, organize logs on UCLA's Hoffman2 cluster.
 
-Usage example:
+Submitting jobs:
     psub \\
     --jobname my_job \\
     --mem 4G \\
@@ -128,6 +128,13 @@ Usage example:
     of arg and p.
     Use ::: to expand a list of parameters and :::: to read from each line in a file.
     Inspired by GNU Parallel's interface.
+    
+Viewing logs:
+    Use the `psub logs` subcommand.
+    
+Checking job statuses:
+    Use the `psub status` subcommand.
+
 """
     # todo add more detail to help string
 
@@ -197,7 +204,7 @@ Usage example:
         "--logs",
         action="store_true",
         default=False,
-        help="Do not ask for confirmation before submitting jobs.",
+        help="View logs from submitted jobs.",
     )
 
     parser.add_argument(

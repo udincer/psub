@@ -1,4 +1,6 @@
 # psub
+![badge](https://github.com/udincer/psub/actions/workflows/python-package.yml/badge.svg)
+
 Submit and monitor array jobs on Hoffman2 with minimal configuration and suffering. 
 
 psub provides an intuitive way to submit array jobs on UCLA's Hoffman2 compute cluster and monitor their output logs. Instead of trying to write scripts that generate scripts that in turn gets submitted to the scheduler or dealing with environmental variables, you can do this with psub and forget about the rest:

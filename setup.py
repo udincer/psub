@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="psub", 
-    version="0.1.0_alpha",
+    version="0.1.1_alpha",
     author="Tev Dincer",
     author_email="umutdincer@gmail.com",
     description="Submit array jobs to a SGE cluster without all the suffering",
@@ -18,5 +18,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    install_requires=["simple-term-menu"],
     entry_points={'console_scripts': ['psub = psub.cli:main']}
 )

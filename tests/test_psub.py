@@ -38,3 +38,8 @@ def test__build_resource_string(p):
 def test_parse_psub_command_string_to_command_list(p, expected_commands):
     line_ = "echo {} -k {} -q {} ::: arg1 arg2 ::: argA argB argC ::: argX argY"
     assert expected_commands == p.parse_psub_command_string_to_command_list(line_)
+
+
+def test_cli():
+    import os
+    os.system('psub echo {} -k {} -q {} ::: arg1 arg2 ::: argA argB argC ::: argX argY')

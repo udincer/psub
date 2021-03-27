@@ -6,28 +6,63 @@ from glob import glob
 from psub import Psub
 
 
-def check_status_select():
-    pass
+class bcolors:
+    """https://stackoverflow.com/questions/287871/"""
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def check_status_workflow():
+    psub_history_recent_first = sorted(Psub.get_history(),
+                                       key=lambda x: x.submit_time,
+                                       reverse=True)
+    terminal_menu = _job_select_terminal_menu(psub_history_recent_first)
+    terminal_menu.show()
 
 
 def _job_select_terminal_menu(psub_history_recent_first):
     from simple_term_menu import TerminalMenu
 
-    one_line_reps = [p.str_single_line().replace('|', r'\|')
-                     for p in psub_history_recent_first]
+    statuses = [p.status for p in psub_history_recent_first]
+    one_line_reps = [p.str_single_line() for p in psub_history_recent_first]
+
+    rep_with_status = [f"{rep} -> {status}"
+                       for status, rep in
+                       zip(statuses, one_line_reps)]
 
     one_line_reps_with_data_component = \
-        [f"{menu_item}|{i}"
-         for i, menu_item in enumerate(one_line_reps)]
+        [menu_item.replace('|', r'\|') + '|' + str(i)
+         for i, menu_item in enumerate(rep_with_status)]
 
     def psub_preview(i) -> str:
         p = psub_history_recent_first[int(i)]
-        return str(p)
+        ansi_color_code_d = {
+            'Finished': bcolors.OKGREEN,
+            'Errors': bcolors.FAIL,
+            'Not yet started': bcolors.OKBLUE,
+            'Running': bcolors.OKCYAN,
+        }
+
+        color_code = \
+        [col for k, col in ansi_color_code_d.items() if p.status.startswith(k)][0]
+
+        status_ = f"{color_code}{p.status}{bcolors.ENDC}"
+        s_ = (f"{status_} \n"
+              f"{str(p)}")
+        return s_
 
     terminal_menu = TerminalMenu(one_line_reps_with_data_component,
                                  title="Psub job history:",
                                  preview_command=psub_preview,
                                  preview_size=0.75,
+                                 status_bar="q -> go back",
                                  )
 
     return terminal_menu
@@ -160,7 +195,7 @@ def main():
         return
 
     if sys.argv[1] == 'status':
-        check_status_select()
+        check_status_workflow()
         return
 
     args = parser.parse_args()

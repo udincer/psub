@@ -1,6 +1,7 @@
 import itertools
 import os
 import subprocess
+from collections import Counter
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -205,6 +206,22 @@ class Psub:
     @property
     def success(self) -> bool:
         return all(v == 'Success' for v in self.exit_codes.values())
+
+    @property
+    def status(self) -> str:
+        exit_vals = self.exit_codes.values()
+        c = Counter(exit_vals)
+        success_rate = c['Success']/len(exit_vals)
+        error_rate = c['Terminated with nonzero status']/len(exit_vals)
+        if all(v == 'Success' for v in exit_vals):
+            return 'Finished'
+        elif 'Terminated with nonzero status' in exit_vals:
+            return f"Errors [{error_rate:.0%}]"
+        elif all(v == 'Not yet started' for v in exit_vals):
+            return "Not yet started"
+        else:
+            return f"Running [{success_rate:.0%}]"
+
 
     def rerun_failed(self):
         pass

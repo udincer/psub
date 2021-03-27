@@ -12,12 +12,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/udincer/psub",
-    scripts=['psub/main.py'],
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
-    entry_points={'console_scripts': ['psub = psub.main:main']}
+    entry_points={'console_scripts': ['psub = psub.cli:main']}
 )

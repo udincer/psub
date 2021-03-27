@@ -32,5 +32,5 @@ for ((i=0; i<${NUM_IN_BATCH}; i++)); do
     echo "started" > ${TMPDIR}/exit_status.${LINE_NUM}
     eval $CMD
     EXIT_STATUS=$?
-    echo "${EXIT_STATUS} $(date +%s)" > ${TMPDIR}/exit_status.${LINE_NUM}
+    echo "${EXIT_STATUS} $(date +%s)" > ${TMPDIR}/exit_status/${LINE_NUM}
 done"""

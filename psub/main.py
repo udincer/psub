@@ -1,8 +1,6 @@
-import argparse
 import itertools
 import os
 import subprocess
-import sys
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -12,8 +10,7 @@ import json
 
 from psub import submission_scripts
 
-PATH_HOME = Path.home()
-PATH_PSUB = f"{PATH_HOME}/.psub"
+PATH_PSUB = f"{Path.home()}/.psub"
 
 
 class Psub:
@@ -47,9 +44,6 @@ class Psub:
 
         self.batch_size = batch_size if batch_size is not None else 1
 
-        self.history_fn = f"{PATH_PSUB}/psub_history.json"
-        self.history_number_of_records_limit = 100
-
         self.submit_time = None
 
         self.commands: List[str] = []
@@ -81,6 +75,15 @@ class Psub:
     def __repr__(self):
         return str(self)
 
+    def str_single_line(self):
+        max_line_len = 79
+        sample_command = self.commands[0]
+        single_line_str = f"Psub[{len(self.commands)}]: {self.name} | {sample_command}"
+        if len(single_line_str) > max_line_len:
+            return single_line_str[:max_line_len-3] + '...'
+        else:
+            return single_line_str
+
     def add(self, commands: Union[List[str], str]):
         if isinstance(commands, str):
             commands = [commands]
@@ -101,8 +104,38 @@ class Psub:
     def submit(self, dry_run: bool = False, skip_confirm: bool = False):
         assert self.commands, "Command list empty"
 
+        self.submit_time = datetime.now().isoformat(timespec="seconds")
+
+        subprocess_cmd = (
+            f". {self.submission_script_fn} {self.commands_list_fn} {self.batch_size}"
+        )
+
+        print(str(self))
+
+        if dry_run:
+            return
+
+        if not skip_confirm:
+            print("\nSubmit to cluster? [Y/n]")
+            response = input()
+        else:
+            response = "y"
+
+        if response in {"", "y", "Y"}:
+            self._prepare_submit_files()
+            comp_process = subprocess.run(
+                subprocess_cmd,
+                shell=True,
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
+            )
+            print(comp_process.stdout)
+            self._register_to_history()
+
+    def _prepare_submit_files(self):
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.tmp_dir, exist_ok=True)
+        os.makedirs(f"{self.tmp_dir}/exit_status")
 
         with open(self.commands_list_fn, "w") as f:
             for cmd_ in self.commands:
@@ -127,43 +160,15 @@ class Psub:
         os.chmod(self.submission_script_fn, 0o755)
         os.chmod(self.task_runner_fn, 0o755)
 
-        self.submit_time = datetime.now().isoformat(timespec="seconds")
-
-        subprocess_cmd = (
-            f". {self.submission_script_fn} {self.commands_list_fn} {self.batch_size}"
-        )
-
-        print(str(self))
-
-        if dry_run:
-            return
-
-        if not skip_confirm:
-            print("\nSubmit to cluster? [Y/n]")
-            response = input()
-        else:
-            response = "y"
-
-        if response in {"", "y", "Y"}:
-            comp_process = subprocess.run(
-                subprocess_cmd,
-                shell=True,
-                universal_newlines=True,
-                stdout=subprocess.PIPE,
-            )
-            print(comp_process.stdout)
-
-            self._register_to_history()
-
     def _get_exit_codes(self):
-        exit_status_fns = sorted(glob(f"{self.tmp_dir}/exit_status.*"))
+        exit_status_fns = sorted(glob(f"{self.tmp_dir}/exit_status/*"))
         exit_status_d = {}
         for fn in exit_status_fns:
-            task_line_number = int(fn.split('.')[-1])
+            task_line_number = int(fn.split('/')[-1])
             with open(fn) as f:
                 exit_status_ = f.readlines()
                 assert len(exit_status_) == 1
-                exit_status, timestamp = exit_status_[0]
+                exit_status, timestamp = exit_status_[0].split()
                 exit_status_d[task_line_number] = exit_status
         return exit_status_d
 
@@ -205,8 +210,8 @@ class Psub:
         pass
 
     def _register_to_history(self):
-        # todo
-        pass
+        with open(f"{self.tmp_dir}/{self.name}.json", 'w') as f:
+            print(self.dumps(), file=f)
 
     def _build_resource_string(self) -> str:
         l_str = []
@@ -252,96 +257,13 @@ class Psub:
         p.__dict__.update(d)
         return p
 
+    @classmethod
+    def load(cls, json_fn):
+        with open(json_fn) as f:
+            json_str = f.read()
+        return cls.loads(json_str)
 
-def main():
-    ARGPARSE_HELP_STRING = """ Todo
-    """  # todo
-
-    parser = argparse.ArgumentParser(
-        prog="psub",
-        description=ARGPARSE_HELP_STRING,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what jobs will be submitted without actually submitting them.",
-    )
-
-    parser.add_argument(
-        "-n", "--jobname", help="Name of job that will appear in the queue"
-    )
-
-    parser.add_argument(
-        "-b", "--jobs-per-batch", "--batch-size", help="Number of jobs per batch"
-    )
-
-    parser.add_argument(
-        "-a",
-        "--file",
-        action="store_true",
-        help=(
-            "Submit jobs for file where each line is a command. "
-            'Equivalent to "psub :::: file".'
-        ),
-    )
-
-    parser.add_argument(
-        "--l_arch", "--arch", help="Only request a target CPU architecture, e.g. intel*"
-    )
-    parser.add_argument("--l_mem", "--mem", help="Memory per core requested, e.g. 4G")
-    parser.add_argument(
-        "--l_time", "--time", help="Time requested, e.g. 12:00:00 for 12 hours."
-    )
-
-    parser.add_argument(
-        "-j", "--cores", "--num_cores", help="Number of cores to request."
-    )
-
-    parser.add_argument(
-        "--l_highp",
-        action="store_true",
-        default=True,
-        help=(
-            "Submit to highp queue. "
-            "This will only use nodes that belong to your user group and "
-            "allows for job durations up to 14 days."
-        ),
-    )
-
-    parser.add_argument(
-        "-y",
-        "--yes",
-        action="store_true",
-        default=False,
-        help="Do not ask for confirmation before submitting jobs.",
-    )
-
-    parser.add_argument("command", nargs=argparse.REMAINDER,
-                        help="Command template string")
-
-    if len(sys.argv) < 2:
-        parser.print_help(sys.stderr)
-        raise SystemExit()
-
-    args = parser.parse_args()
-
-    command_str = " ".join(args.command)
-
-    p = Psub(
-        name=args.jobname,
-        l_arch=args.l_arch,
-        l_mem=args.l_mem,
-        l_time=args.l_time,
-        l_highp=args.l_highp,
-        num_cores=args.cores,
-    )
-
-    p.add(Psub.parse_psub_command_string_to_command_list(command_str))
-
-    p.submit(dry_run=args.dry_run, skip_confirm=args.yes)
-
-
-if __name__ == '__main__':
-    main()
+    @classmethod
+    def get_history(cls) -> List["Psub"]:
+        json_fns = sorted(glob(f"{PATH_PSUB}/tmp/*/*.json"))
+        return [cls.load(fn) for fn in json_fns]

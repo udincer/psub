@@ -26,9 +26,9 @@ class Psub:
             batch_size: int = 1,
     ):
         if name is None:
-            now_str = datetime.now().strftime("%Y_%m_%dT%H%M")
-            name = f"job.{now_str}"
-        self.name = name
+            name = "job"
+        now_str = datetime.now().strftime("%Y_%m_%dT%H%M")
+        self.name = f"{name}.{now_str}"
 
         self.log_dir = f"{PATH_PSUB}/logs/{self.name}"
         self.tmp_dir = f"{PATH_PSUB}/tmp/{self.name}"
@@ -226,6 +226,7 @@ class Psub:
         pass
 
     def _register_to_history(self):
+        assert self.submit_time is not None
         with open(f"{self.tmp_dir}/{self.name}.json", 'w') as f:
             print(self.dumps(), file=f)
 
@@ -282,4 +283,11 @@ class Psub:
     @classmethod
     def get_history(cls) -> List["Psub"]:
         json_fns = sorted(glob(f"{PATH_PSUB}/tmp/*/*.json"))
-        return [cls.load(fn) for fn in json_fns]
+        psub_list = [cls.load(fn) for fn in json_fns]
+        psub_list = [p for p in psub_list if p.check_valid()]
+        return sorted(
+            psub_list, key=lambda x: x.submit_time, reverse=True
+        )
+
+    def check_valid(self):
+        return self.submit_time is not None

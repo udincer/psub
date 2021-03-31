@@ -7,13 +7,15 @@ from collections import defaultdict
 import shutil
 import xml.etree.cElementTree as ET
 
-""" Monitor jobs
+""" Monitor jobs on SGE
+
+Updates status every minute
 """
 
 USER = os.environ['USER']
 
 
-class AnsiColors:
+class AnsiCommands:
     """https://stackoverflow.com/questions/287871/"""
 
     HEADER = "\033[95m"
@@ -24,9 +26,11 @@ class AnsiColors:
     FAIL = "\033[91m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
-    UNDERLINE = "\033[4m",
-    START_LINE = "\033[F",
-    UP_LINE = "\033[A",
+    UNDERLINE = "\033[4m"
+    START_LINE = "\033[F"
+    UP_LINE = "\033[A"
+    SWITCH_ALT_SCREEN = '\033[?1049h'
+    SWITCH_NORMAL_SCREEN = '\033[?1049l'
 
 
 class Job:
@@ -67,8 +71,8 @@ class Job:
         slack = line_max - len(s_2) + len(job_name_)
 
         if color:
-            col_ = AnsiColors.OKGREEN if job_state == 'r' else AnsiColors.OKBLUE
-            col_end = AnsiColors.ENDC
+            col_ = AnsiCommands.OKGREEN if job_state == 'r' else AnsiCommands.OKBLUE
+            col_end = AnsiCommands.ENDC
         else:
             col_ = ''
             col_end = ''
@@ -100,8 +104,15 @@ def etree_to_dict(t):
 def get_job_list(dd):
     job_list = []
 
-    l1 = dd['job_info']['queue_info']['job_list']
-    l2 = dd['job_info']['job_info']['job_list']
+    try:
+        l1 = dd['job_info']['queue_info']['job_list']
+    except Exception:
+        l1 = []
+
+    try:
+        l2 = dd['job_info']['job_info']['job_list']
+    except Exception:
+        l2 = []
 
     for ll in [l1, l2]:
         if not isinstance(ll, list):
@@ -135,6 +146,7 @@ def get_job_lines():
 
 def main():
     try:
+        sys.stdout.write(AnsiCommands.SWITCH_ALT_SCREEN)
         while True:
             line_width, term_height = shutil.get_terminal_size((80, 20))
             lines = get_job_lines()
@@ -144,16 +156,19 @@ def main():
             for line in lines:
                 print(line)
 
-            time.sleep(1)
-
             GO_UP = f"\u001b[{term_height - 1}A"
             GO_LEFT = u"\u001b[1000D"
 
             sys.stdout.write(GO_LEFT)
             sys.stdout.write(GO_UP)
 
+            time.sleep(1)
+
     except KeyboardInterrupt:
         pass
+    finally:
+        sys.stdout.flush()
+        sys.stdout.write(AnsiCommands.SWITCH_NORMAL_SCREEN)
 
 
 if __name__ == '__main__':

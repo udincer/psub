@@ -8,10 +8,15 @@ from pathlib import Path
 from typing import List, Union, Tuple, Iterator, Dict
 import re
 import json
+import logging
 
 from psub import submission_scripts
 
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 PATH_PSUB = f"{Path.home()}/.psub"
+TMP_DIR = f"{os.environ.get('SCRATCH', PATH_PSUB)}/psub_tmp"
+HISTORY_DIR = f"{PATH_PSUB}/history"
 
 
 class Psub:
@@ -31,7 +36,7 @@ class Psub:
         self.name = f"{name}.{now_str}"
 
         self.log_dir = f"{PATH_PSUB}/logs/{self.name}"
-        self.tmp_dir = f"{PATH_PSUB}/tmp/{self.name}"
+        self.tmp_dir = f"{TMP_DIR}/{self.name}"
 
         self.commands_list_fn = f"{self.tmp_dir}/{self.name}.commands.sh"
         self.submission_script_fn = f"{self.tmp_dir}/submission_script.sh"
@@ -135,8 +140,9 @@ class Psub:
 
     def _prepare_submit_files(self):
         os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(HISTORY_DIR, exist_ok=True)
         os.makedirs(self.tmp_dir, exist_ok=True)
-        os.makedirs(f"{self.tmp_dir}/exit_status")
+        os.makedirs(f"{self.tmp_dir}/exit_status", exist_ok=True)
 
         with open(self.commands_list_fn, "w") as f:
             for cmd_ in self.commands:
@@ -208,7 +214,7 @@ class Psub:
         return all(v == 'Success' for v in self.exit_codes.values())
 
     @property
-    def status(self) -> str:
+    def status(self) -> str:  # TODO this seems to take a long time
         exit_vals = self.exit_codes.values()
         c = Counter(exit_vals)
         success_rate = c['Success'] / len(exit_vals)
@@ -223,11 +229,12 @@ class Psub:
             return f"Running [{success_rate:.0%}]"
 
     def rerun_failed(self):
+        logging.warning('This is not yet implemented.')
         pass
 
     def _register_to_history(self):
         assert self.submit_time is not None
-        with open(f"{self.tmp_dir}/{self.name}.json", 'w') as f:
+        with open(f"{HISTORY_DIR}/{self.submit_time}.{self.name}.json", 'w') as f:
             print(self.dumps(), file=f)
 
     def _build_resource_string(self) -> str:
@@ -282,9 +289,15 @@ class Psub:
 
     @classmethod
     def get_history(cls) -> List["Psub"]:
-        json_fns = sorted(glob(f"{PATH_PSUB}/tmp/*/*.json"))
-        psub_list = [cls.load(fn) for fn in json_fns]
-        psub_list = [p for p in psub_list if p.check_valid()]
+        json_fns = sorted(glob(f"{HISTORY_DIR}/*.json"))
+        psub_list = []
+        for fn in json_fns:
+            try:
+                p_ = cls.load(fn)
+                if p_.check_valid():
+                    psub_list.append(p_)
+            except json.JSONDecodeError:
+                print(f'Trouble loading {fn}')
         return sorted(
             psub_list, key=lambda x: x.submit_time, reverse=True
         )

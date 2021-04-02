@@ -2,8 +2,9 @@ import argparse
 import subprocess
 import sys
 from glob import glob
+import shutil
 
-from psub import Psub
+from psub import Psub, __version__
 
 
 class AnsiColors:
@@ -108,7 +109,10 @@ def logging_workflow():
         log_choice = terminal_menu_logs.show()
 
         while log_choice is not None:
-            _ = subprocess.run(["less", f"{log_fns[log_choice]}"])
+            if shutil.which('bat'):  # check if bat (cat alternative) is installed
+                _ = subprocess.run(["bat", "-l", "py", "--paging=always", f"{log_fns[log_choice]}"])
+            else:  # fallback to less
+                _ = subprocess.run(["less", f"{log_fns[log_choice]}"])
             log_choice = terminal_menu_logs.show()
 
         run_choice = terminal_menu.show()
@@ -116,8 +120,8 @@ def logging_workflow():
 
 def main():
     ARGPARSE_HELP_STRING = """
-psub 0.1.0a: Submit and monitor jobs, organize logs on UCLA's Hoffman2 cluster.
-
+Submit and monitor jobs, organize logs on UCLA's Hoffman2 cluster.
+            
 Submitting jobs:
     psub \\
     --jobname my_job \\
@@ -134,8 +138,9 @@ Viewing logs:
     
 Checking job statuses:
     Use the `psub status` subcommand.
-
 """
+
+    ARGPARSE_HELP_STRING = f"psub {__version__}:" + ARGPARSE_HELP_STRING
     # todo add more detail to help string
 
     parser = argparse.ArgumentParser(

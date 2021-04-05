@@ -29,7 +29,7 @@ TMPDIR=$3
 for ((i=0; i<${NUM_IN_BATCH}; i++)); do
     LINE_NUM=$((SGE_TASK_ID+i))
     CMD=$(awk "NR==$LINE_NUM" $TASKS_FILE)
-    echo "started" > ${TMPDIR}/exit_status/${LINE_NUM}
+    echo "started $(date +%s)" > ${TMPDIR}/exit_status/${LINE_NUM}
     eval $CMD
     EXIT_STATUS=$?
     echo "${EXIT_STATUS} $(date +%s)" > ${TMPDIR}/exit_status/${LINE_NUM}

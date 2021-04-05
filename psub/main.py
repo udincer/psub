@@ -12,7 +12,8 @@ import logging
 
 from psub import submission_scripts
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.ERROR,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 PATH_PSUB = f"{Path.home()}/.psub"
 TMP_DIR = f"{os.environ.get('SCRATCH', PATH_PSUB)}/psub_tmp"
@@ -171,12 +172,16 @@ class Psub:
         exit_status_fns = sorted(glob(f"{self.tmp_dir}/exit_status/*"))
         exit_status_d = {}
         for fn in exit_status_fns:
-            task_line_number = int(fn.split('/')[-1])
-            with open(fn) as f:
-                exit_status_ = f.readlines()
-                assert len(exit_status_) == 1
-                exit_status, timestamp = exit_status_[0].split()
-                exit_status_d[task_line_number] = exit_status
+            try:
+                task_line_number = int(fn.split('/')[-1])
+                with open(fn) as f:
+                    exit_status_ = f.readlines()
+                    assert len(exit_status_) == 1
+                    exit_status, timestamp = exit_status_[0].split()
+                    exit_status_d[task_line_number] = exit_status
+            except Exception as e:
+                logging.debug(f'Error retrieving exit status: {fn}')
+                logging.debug(e)
         return exit_status_d
 
     @property

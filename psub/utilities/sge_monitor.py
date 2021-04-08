@@ -31,6 +31,7 @@ class AnsiCommands:
     UP_LINE = "\033[A"
     SWITCH_ALT_SCREEN = '\033[?1049h'
     SWITCH_NORMAL_SCREEN = '\033[?1049l'
+    CLEAR_SCREEN = '\033[2J'
 
 
 class Job:
@@ -151,7 +152,15 @@ def main():
             line_width, term_height = shutil.get_terminal_size((80, 20))
             lines = get_job_lines()
             num_blank_lines = term_height - len(lines) - 1
-            lines += [''] * num_blank_lines
+
+            if num_blank_lines > 0:
+                lines += [''] * num_blank_lines
+            else:  # does not fit screen
+                lines = [f'↑ More jobs: {len(lines) - term_height} ↑'] + \
+                        lines[-term_height+2:]
+
+            sys.stdout.write(AnsiCommands.CLEAR_SCREEN)
+            sys.stdout.flush()
 
             for line in lines:
                 print(line)

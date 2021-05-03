@@ -19,7 +19,9 @@ When run in a folder containing f1.csv, f2.csv and f3.csv, this will submit a jo
 ./my_script.sh f3.csv --argument arg2
 ```
 
-psub keeps all stdouts and stderrs nice and tidy. You can view logs associated with a particular job with the `psub logs` subcommand.
+psub keeps all stdouts and stderrs nice and tidy. You can view and search logs associated with a particular job with the `psub logs` subcommand.
+
+![logs](docs/assets/logs-min.gif)
 
 See `psub --help` for all features.
 
@@ -52,7 +54,7 @@ pp.rerun_failed()  # rerun any failed jobs (TBA)
 
 psub is still in alpha, please let me know of any bugs.
 
-psub is for quickly running and monitoring straightforward array jobs. If your workflow has complex interdependencies, you should look into the excellent [snakemake](https://snakemake.readthedocs.io/en/stable/) tool. 
+psub is for quickly running and monitoring straightforward array jobs. If your workflow has complex interdependencies, you should look into the excellent [snakemake](https://snakemake.readthedocs.io/en/stable/) tool.
 
 ## Installation:
 

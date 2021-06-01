@@ -9,6 +9,7 @@ from typing import List, Union, Tuple, Iterator, Dict
 import re
 import json
 import logging
+import copy
 
 from psub import submission_scripts
 
@@ -233,9 +234,11 @@ class Psub:
         else:
             return f"Running [{success_rate:.0%}]"
 
-    def rerun_failed(self):
-        logging.warning('This is not yet implemented.')
-        pass
+    def rerun_failed(self, dry_run=False, skip_confirm=True):
+        commands_l = [k for k, v in self.exit_codes.items() if v != 'Success']
+        p = self.copy()
+        p.commands = commands_l
+        p.submit(dry_run=dry_run, skip_confirm=skip_confirm)
 
     def _register_to_history(self):
         assert self.submit_time is not None
@@ -309,3 +312,6 @@ class Psub:
 
     def check_valid(self):
         return self.submit_time is not None
+
+    def copy(self):
+        return copy.deepcopy(self)

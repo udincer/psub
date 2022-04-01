@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime
 from collections import defaultdict
 import shutil
+from pathlib import Path
 import xml.etree.cElementTree as ET
 
 """ Monitor jobs on SGE
@@ -130,7 +131,7 @@ def get_job_list(dd):
     return jobs
 
 
-def get_job_lines():
+def get_job_list_direct():
     cp = subprocess.run(f'qstat -u {USER} -xml', capture_output=True, shell=True)
     xml_ = cp.stdout.decode()
 
@@ -139,10 +140,31 @@ def get_job_lines():
     dd = etree_to_dict(e)
     job_list = get_job_list(dd)
 
+    return job_list
+
+def get_job_lines():
+    job_list = get_job_list_direct()
     line_width, term_height = shutil.get_terminal_size((80, 20))
 
     lines = [j.one_line_rep(line_width) for j in job_list]
     return lines
+
+
+def get_cpu_utilization_of_interactive_nodes():
+    cpu_usages_d = {}
+    job_list = get_job_list_direct()
+    for job in job_list:
+        if job.JB_name == 'QRLOGIN':
+            node_name = job.queue_name.split('@')[-1]
+            pp = Path(__file__).parents[0].absolute()
+
+            cmd_ = f"ssh {node_name} -f 'python {pp}/sge_check_cpu_util.py'"
+            cp = subprocess.run(cmd_, shell=True, capture_output=True)
+            cpu_usage = cp.stdout.decode('utf-8').strip()
+            cpu_usages_d[node_name] = cpu_usage
+            print(f"{node_name}: {cpu_usage}")
+
+    return cpu_usages_d
 
 
 def main():

@@ -1,2 +1,2 @@
 import psutil 
-print('{}%'.format(psutil.cpu_percent(interval=2)))
+print('{}%'.format(psutil.cpu_percent(interval=4)))

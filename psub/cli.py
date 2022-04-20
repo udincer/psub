@@ -110,7 +110,7 @@ def logging_workflow():
 
         while log_choice is not None:
             if shutil.which('bat'):  # check if bat (cat alternative) is installed
-                _ = subprocess.run(["bat", "-l", "py", "--paging=always", f"{log_fns[log_choice]}"])
+                _ = subprocess.run(["bat", "--paging=always", "--wrap=never", f"{log_fns[log_choice]}"])
             else:  # fallback to less
                 _ = subprocess.run(["less", f"{log_fns[log_choice]}"])
             log_choice = terminal_menu_logs.show()

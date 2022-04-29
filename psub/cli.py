@@ -4,6 +4,8 @@ import sys
 from glob import glob
 import shutil
 
+from simple_term_menu import TerminalMenu
+
 from psub import Psub, __version__
 
 
@@ -25,46 +27,87 @@ def check_status_workflow():
     psub_history_recent_first = sorted(
         Psub.get_history(), key=lambda x: x.submit_time, reverse=True
     )
-    terminal_menu = _job_select_terminal_menu(psub_history_recent_first)
-    terminal_menu.show()
+    terminal_menu = _job_select_terminal_menu(psub_history_recent_first, with_status=True)
+    run_choice = terminal_menu.show()
+
+    while run_choice is not None:
+        pp = psub_history_recent_first[run_choice]
+        terminal_menu_logs = _log_select_terminal_menu_with_status(pp)
+
+        log_fns = sorted(glob(f"{pp.log_dir}/*"))
+        log_choice = terminal_menu_logs.show()
+
+        while log_choice is not None:
+            if shutil.which('bat'):  # check if bat (cat alternative) is installed
+                _ = subprocess.run(["bat", "--paging=always", "--wrap=never", f"{log_fns[log_choice]}"])
+            else:  # fallback to less
+                _ = subprocess.run(["less", f"{log_fns[log_choice]}"])
+            log_choice = terminal_menu_logs.show()
+
+        run_choice = terminal_menu.show()
 
 
-def _job_select_terminal_menu(psub_history_recent_first):
-    from simple_term_menu import TerminalMenu
-
-    statuses = [p.status for p in psub_history_recent_first]
+def _job_select_terminal_menu(psub_history_recent_first, with_status=False, num_with_status=10):
     one_line_reps = [p.str_single_line() for p in psub_history_recent_first]
 
-    rep_with_status = [
-        f"{rep} -> {status}" for status, rep in zip(statuses, one_line_reps)
-    ]
+    if with_status:
+        statuses = []
+        reps_with_status = []
+        for j, p in enumerate(psub_history_recent_first):
+            if j < num_with_status:
+                status_ = p.status
+                statuses.append(status_)
+
+                rep = one_line_reps[j]
+                reps_with_status.append(f"{rep} -> {status_}")
+            else:
+                statuses.append("...")
+                rep = one_line_reps[j]
+                reps_with_status.append(f"{rep} -> ...")
+
+        one_line_reps_ = reps_with_status
+
+        def psub_preview_with_status(i) -> str:
+            p = psub_history_recent_first[int(i)]
+            status_ = statuses[int(i)]
+
+            ansi_color_code_d = {
+                "Finished": AnsiColors.OKGREEN,
+                "Errors": AnsiColors.FAIL,
+                "Not yet started": AnsiColors.OKBLUE,
+                "Running": AnsiColors.OKCYAN,
+                "...": AnsiColors.OKBLUE,
+            }
+
+            color_code = [
+                col for k, col in ansi_color_code_d.items() if status_.startswith(k)
+            ][0]
+
+            status_c = f"{color_code}{status_}{AnsiColors.ENDC}"
+            s_ = f"{status_c} \n" f"{str(p)}"
+            return s_
+
+        psub_preview_ = psub_preview_with_status
+
+    else:
+        one_line_reps_ = one_line_reps
+
+        def psub_preview(i) -> str:
+            p = psub_history_recent_first[int(i)]
+            s_ = f"{str(p)}"
+            return s_
+
+        psub_preview_ = psub_preview
 
     one_line_reps_with_data_component = [
         menu_item.replace("|", r"\|") + "|" + str(i)
-        for i, menu_item in enumerate(rep_with_status)
+        for i, menu_item in enumerate(one_line_reps_)
     ]
-
-    def psub_preview(i) -> str:
-        p = psub_history_recent_first[int(i)]
-        ansi_color_code_d = {
-            "Finished": AnsiColors.OKGREEN,
-            "Errors": AnsiColors.FAIL,
-            "Not yet started": AnsiColors.OKBLUE,
-            "Running": AnsiColors.OKCYAN,
-        }
-
-        color_code = [
-            col for k, col in ansi_color_code_d.items() if p.status.startswith(k)
-        ][0]
-
-        status_ = f"{color_code}{p.status}{AnsiColors.ENDC}"
-        s_ = f"{status_} \n" f"{str(p)}"
-        return s_
 
     terminal_menu = TerminalMenu(
         one_line_reps_with_data_component,
         title="Psub job history:",
-        preview_command=psub_preview,
+        preview_command=psub_preview_,
         preview_size=0.75,
         status_bar="q -> go back, / -> search",
     )
@@ -73,17 +116,66 @@ def _job_select_terminal_menu(psub_history_recent_first):
 
 
 def _log_select_terminal_menu(pp: Psub):
-    from simple_term_menu import TerminalMenu
-
     log_fns = sorted(glob(f"{pp.log_dir}/*"))
 
     def log_preview(log_fn) -> str:
+        log_l = []
         with open(log_fn) as f:
-            log = f.read()
-        return log
+            for line in f:
+                log_l.append(line)
+        if len(log_l) > 30:
+            log_str = ''.join(log_l[:15] + ['...\n'] + log_l[-15:])
+        else:
+            log_str = ''.join(log_l)
+        return log_str
 
     terminal_menu_logs = TerminalMenu(
         log_fns,
+        title=f"Job logs for {pp.name}:",
+        preview_command=log_preview,
+        preview_size=0.75,
+        status_bar="q -> go back, / -> search",
+    )
+
+    return terminal_menu_logs
+
+def _log_select_terminal_menu_with_status(pp: Psub):
+    log_fns = sorted(glob(f"{pp.log_dir}/*"))
+    exit_codes_d = pp._get_exit_codes()
+
+    log_fn_with_exit_code_d = {}
+    log_fn_with_exit_code_d_no_error = {}
+    log_fn_with_exit_code_d_with_error = {}
+
+    for log_fn in log_fns:
+        job_number = int(log_fn.split('/')[-1].split('.')[1])
+        exit_code = exit_codes_d.get(int(job_number))
+        log_fn_with_exit_code_d[job_number]  = f"{log_fn} ## {exit_code}"
+
+        if exit_code == '0':
+            log_fn_with_exit_code_d_no_error[job_number]  = f"{log_fn} ## {exit_code}"
+        else:
+            log_fn_with_exit_code_d_with_error[job_number]  = f"{log_fn} ## {exit_code}"
+
+    l1 = [log_fn_with_exit_code_d_with_error[key] for key in sorted(log_fn_with_exit_code_d_with_error.keys())]
+    l2 = [log_fn_with_exit_code_d_no_error[key] for key in sorted(log_fn_with_exit_code_d_no_error.keys())]
+    
+    log_fn_with_exit_code_l = l1 + l2
+
+    def log_preview(log_fn_with_exit_code) -> str:
+        log_fn, exit_code = log_fn_with_exit_code.split(' ## ')
+        log_l = []
+        with open(log_fn) as f:
+            for line in f:
+                log_l.append(line)
+        if len(log_l) > 30:
+            log_str = ''.join(log_l[:15] + ['...\n'] + log_l[-15:])
+        else:
+            log_str = ''.join(log_l)
+        return log_str
+
+    terminal_menu_logs = TerminalMenu(
+        log_fn_with_exit_code_l,
         title=f"Job logs for {pp.name}:",
         preview_command=log_preview,
         preview_size=0.75,

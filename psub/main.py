@@ -12,6 +12,7 @@ import logging
 import copy
 
 from psub import submission_scripts
+from psub import sqlite_utils
 
 logging.basicConfig(level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -169,7 +170,7 @@ class Psub:
             print(submission_scripts.RUN_TASK, file=f)
 
         with open(self.sqlite_write_fn, "w") as f:
-            print(submission_scripts.PY_SQLITE_WRITE.format(**psub_main_params), file=f)
+            print(submission_scripts.PY_SQLITE_WRITE, file=f)
 
         with open(self.status_update_sh_fn, "w") as f:
             print(submission_scripts.STATUS_UPDATE_SH.format(**psub_main_params), file=f)
@@ -181,20 +182,16 @@ class Psub:
         os.chmod(self.status_update_sh_fn, 0o755)
 
     def _get_exit_codes(self):
-        exit_status_fns = sorted(glob(f"{self.tmp_dir}/exit_status/*"))
         exit_status_d = {}
-        for fn in exit_status_fns:
-            try:
-                task_line_number = int(fn.split('/')[-1])
-                with open(fn) as f:
-                    exit_status_ = f.readlines()
-                    assert len(exit_status_) == 1
-                    exit_status, timestamp = exit_status_[0].split()
-                    exit_status_d[task_line_number] = exit_status
-            except Exception as e:
-                logging.debug(f'Error retrieving exit status: {fn}')
-                logging.debug(e)
+        try:
+            exit_status_sqlite_fn = f"{self.tmp_dir}/exit_status/exit_status.sqlite"
+            status_d = sqlite_utils.get_dict_from_sqlite(exit_status_sqlite_fn)
+            exit_status_d = {int(k):v['exit_code'] for k,v in status_d.items()}
+        except Exception as e:
+            logging.debug(f'Error retrieving exit status: {exit_status_sqlite_fn}')
+            logging.debug(e)
         return exit_status_d
+        
 
     @property
     def exit_codes(self) -> Dict[str, Union[int, str]]:

@@ -39,6 +39,7 @@ done"""
 
 
 PY_SQLITE_WRITE = r"""
+import sys
 import json
 import sqlite3
 
@@ -91,5 +92,5 @@ EXIT_STATUS=$3
 
 CURRENT_TIME=$(date +%s)
 
-python {tmpdir}/sqlite_write.py ${TMPDIR}/exit_status/exit_status.sqlite ${LINE_NUM} ${EXIT_STATUS} ${CURRENT_TIME}
+python {tmpdir}/sqlite_write.py ${{TMPDIR}}/exit_status/exit_status.sqlite ${{LINE_NUM}} ${{EXIT_STATUS}} ${{CURRENT_TIME}}
 """

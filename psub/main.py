@@ -44,6 +44,9 @@ class Psub:
         self.submission_script_fn = f"{self.tmp_dir}/submission_script.sh"
         self.task_runner_fn = f"{self.tmp_dir}/run_task.sh"
 
+        self.sqlite_write_fn = f"{self.tmp_dir}/sqlite_write.py"
+        self.status_update_sh_fn = f"{self.tmp_dir}/status_update.sh"
+
         self.l_arch = l_arch if l_arch is not None else "intel*"
         self.l_mem = l_mem if l_mem is not None else "4G"
         self.l_time = l_time if l_time is not None else "7:59:59"
@@ -165,9 +168,17 @@ class Psub:
         with open(self.task_runner_fn, "w") as f:
             print(submission_scripts.RUN_TASK, file=f)
 
+        with open(self.sqlite_write_fn, "w") as f:
+            print(submission_scripts.PY_SQLITE_WRITE.format(**psub_main_params), file=f)
+
+        with open(self.status_update_sh_fn, "w") as f:
+            print(submission_scripts.STATUS_UPDATE_SH.format(**psub_main_params), file=f)
+
         # make the scripts executable
         os.chmod(self.submission_script_fn, 0o755)
         os.chmod(self.task_runner_fn, 0o755)
+        os.chmod(self.sqlite_write_fn, 0o755)
+        os.chmod(self.status_update_sh_fn, 0o755)
 
     def _get_exit_codes(self):
         exit_status_fns = sorted(glob(f"{self.tmp_dir}/exit_status/*"))

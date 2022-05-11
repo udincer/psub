@@ -32,10 +32,11 @@ def check_status_workflow():
 
     while run_choice is not None:
         pp = psub_history_recent_first[run_choice]
-        terminal_menu_logs = _log_select_terminal_menu_with_status(pp)
+        terminal_menu_logs, log_fn_with_exit_code_l = _log_select_terminal_menu_with_status(pp)
 
-        log_fns = sorted(glob(f"{pp.log_dir}/*"))
+        # log_fns = sorted(glob(f"{pp.log_dir}/*"))
         log_choice = terminal_menu_logs.show()
+        log_fns = [fn.split('##')[0].strip() for fn in log_fn_with_exit_code_l]
 
         while log_choice is not None:
             if shutil.which('bat'):  # check if bat (cat alternative) is installed
@@ -182,7 +183,7 @@ def _log_select_terminal_menu_with_status(pp: Psub):
         status_bar="q -> go back, / -> search",
     )
 
-    return terminal_menu_logs
+    return terminal_menu_logs, log_fn_with_exit_code_l
 
 
 def logging_workflow():

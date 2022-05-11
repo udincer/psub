@@ -5,9 +5,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="psub", 
-    version="0.1.2_alpha",
+    version="0.1.3_alpha",
     author="Tev Dincer",
-    author_email="umutdincer@gmail.com",
+    author_email="psub@tev.fyi",
     description="Submit and monitor array jobs on the Hoffman2 cluster with minimal configuration.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,7 +18,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
-    install_requires=["simple-term-menu"],
+    install_requires=["simple-term-menu", "fabric", "textual"],
     entry_points={'console_scripts': [
         'psub = psub.cli:main',
         'sge_monitor = psub.utilities.sge_monitor:main'

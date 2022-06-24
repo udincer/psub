@@ -18,7 +18,7 @@ logging.basicConfig(
     level=logging.ERROR, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-PATH_PSUB = f"{Path.home()}/.psub"
+PATH_PSUB = os.environ.get("PSUB_PATH", f"{Path.home()}/.psub")
 TMP_DIR = f"{os.environ.get('SCRATCH', PATH_PSUB)}/psub_tmp"
 HISTORY_DIR = f"{PATH_PSUB}/history"
 
@@ -39,7 +39,7 @@ class Psub:
         now_str = datetime.now().strftime("%Y_%m_%dT%H%M")
         self.name = f"{name}.{now_str}"
 
-        PATH_PSUB = f"{Path.home()}/.psub" if psub_path is None else psub_path
+        PATH_PSUB = os.environ.get("PSUB_PATH", f"{Path.home()}/.psub") if psub_path is None else psub_path
         TMP_DIR = f"{os.environ.get('SCRATCH', PATH_PSUB)}/psub_tmp"
 
         self.log_dir = f"{PATH_PSUB}/logs/{self.name}"
@@ -158,7 +158,7 @@ class Psub:
                 self._register_to_history()
 
     @classmethod
-    def _submit_through_ssh(cls, ssh_host, subprocess_cmd):
+    def _submit_through_ssh(cls, ssh_host, subprocess_cmd, conda_env_name='tev'):
         from fabric import Connection
 
         c = Connection(
@@ -166,8 +166,9 @@ class Psub:
             connect_kwargs={"key_filename": [str(Path.home() / ".ssh/id_rsa")]},
         )
         cmd_ = f"""hostname &&
-source activate tev4 &&
+source activate {conda_env_name} &&
 which python &&
+cd {os.getcwd()} &&
 {subprocess_cmd}
 """
 
